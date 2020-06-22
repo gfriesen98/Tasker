@@ -1,0 +1,90 @@
+#/bin/bash
+
+#Parse tasker tasks.csv and print list of tasks
+read_tasks() {
+    INPUT=~/.tasker/tasks.csv
+    OLDIFS=$IFS
+    IFS=','
+    x=0
+    [ ! -f $INPUT ] && { echo "$INPUT not found"; exit 99; }
+    while read title content
+    do
+        if [[ $x != 0 ]]; then
+            var=$var"$x) $title: $content\n"
+        fi
+        x=$(( $x + 1 ))
+    done < $INPUT
+    IFS=$OLDIFS
+
+    echo -e $var
+}
+
+# Print help menu
+Help() {
+    echo "Tasker: Create and list tasks"
+    echo
+    echo "Syntax: tasker [-l|h] [-t \"title\"] [-c \"content\"] [-d \"delete\"]"
+    echo "options:"
+    echo "l               List tasks"
+    echo "d               Delete a task."
+    echo "t \"title\"       Title/Name of new task."
+    echo "c \"content\"     Content for new task."
+    echo "h               Print this Help."
+    echo
+    echo "Usage:"
+    echo
+    echo "   -l can be piped into stdin. -d can be piped from stdin"
+    echo "   Both Title AND Content are required to create a new task. "
+}
+
+while getopts :hlt:c:n:d option; do
+    case $option in
+        n)
+            if [ -d "$HOME/.tasker" ]; then
+                echo "Folder exists"
+            else
+                mkdir $HOME/.tasker
+                touch $HOME/.tasker/tasks.csv
+                echo "title,content" >> $HOME/.tasker/tasks.csv
+                echo "Created Tasker csv in $HOME/.tasker/tasks.csv"
+            fi
+            exit ;;
+        d)
+            read_tasks
+            echo "Delete Which? (Task Name):"
+            read -p "Select Name: " i
+            sed -i "/${i},*/d" $INPUT
+            exit ;;
+        l) 
+            read_tasks
+            exit ;;
+        t) 
+            TITLE=$OPTARG ;;
+        c)
+            CONTENT=$OPTARG ;;
+        h)
+            Help
+            exit ;;
+        \?) 
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1 ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1 ;;
+    esac
+done
+
+# Check if name and content exist
+if [ -z ${TITLE+x} ]; then 
+    echo "Name is required to add a task.";
+    exit 1
+fi
+
+if [ -z ${CONTENT+x} ]; then 
+    echo "Content is required to add a task.";
+    exit 1
+fi
+
+# Create new task
+echo "$TITLE,$CONTENT" >> ~/.tasker/tasks.csv
+notify-send "Task $TITLE Created."

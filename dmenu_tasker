@@ -1,0 +1,37 @@
+#!/bin/bash
+
+tasks=$(tasker -l | dmenu -p "Tasker (Type 'new' for new task):" -l 5 -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+
+if [[ $tasks == '' ]]; then exit
+fi
+
+if [[ $tasks == 'new' ]]; then
+    name=$(echo "" | dmenu -p "Task Name:" -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+    if [[ $name == "" ]]; then exit
+    fi
+    content=$(echo "" | dmenu -p "Task Content" -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+    if [[ $content == "" ]]; then exit
+    fi
+    echo "$name,$content" >> ~/.tasker/tasks.csv
+    notify-send "Tasker" "Task $name Created."
+    exit
+fi
+
+taskopt=$(echo -e "Edit?\nDelete?" | dmenu -p "..." -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+
+if [[ $taskopt == 'Edit?' ]]; then
+    task=$(echo $tasks | awk '{print $2, $3}' | sed -e "s/: /,/g")
+    echo $task
+    name=$(echo "" | dmenu -p "Task Name:" -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+    content=$(echo "" | dmenu -p "Task Content" -nb '#1d2021' -nf '#d5c4a1' -sb '#b8bb26' -sf '#1d2021' -fn 'GohuNew:bold:pixelsize=16')
+    sed -i "s/${task}/${name},${content}/g" ~/.tasker/tasks.csv
+    notify-send "Tasker" "$task > $name,$content"
+    exit
+elif [[ $taskopt == 'Delete?' ]]; then
+    echo $tasks | 
+        awk '{print $2, $3}' | 
+        sed -e "s/: /,/g"    |
+        tasker -d
+    notify-send "Tasker" "Deleted $task"
+    exit
+fi
